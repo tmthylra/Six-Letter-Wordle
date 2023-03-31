@@ -1,0 +1,133 @@
+body {
+  font-family: sans-serif;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  padding: 2rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 1rem;
+  font-size: 3rem;
+  text-transform: uppercase;
+  color: #222;
+}
+
+#game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+input[type="text"] {
+  padding: 0.25rem 0.5rem;
+  font-size: 1.2rem;
+  border: 2px solid #888;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.guess-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.tile {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 3rem;
+  height: 3rem;
+  /* border: 1px solid #888; */
+  background-color: #f8f8f8;
+  margin: 0 1px;
+  font-weight: bold;
+  border-radius: 3px;
+  background-color: lightslategray;
+  font-size: 1.4rem;
+  color: white;
+}
+
+.correct {
+  background-color: #4caf50;
+}
+
+.partially-correct {
+  background-color: #d1c221;
+}
+
+.end-message {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-top: 1rem;
+}
+
+#input-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.square-input {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  margin: 0 1px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  border: 1px solid #888;
+  background-color: #f8f8f8;
+  border-radius: 3px;
+  outline: none;
+  caret-color: transparent;
+  background-color: lightslategray;
+  color: white;
+}
+
+.square-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 3px rgba(0, 123, 255, 0.5);
+}
+
+.square-input::placeholder {
+  color: #888;
+  opacity: 1;
+}
+
+.hidden {
+    display: none !important;
+}
