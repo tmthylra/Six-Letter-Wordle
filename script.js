@@ -3,15 +3,49 @@ let wordList = [];
 let gameState;
 let targetWord = "";
 let currentGuess;
-let remainingGuesses = 7;
+let remainingGuesses;
+
+function getTodayDate() {
+  const today = new Date();
+  return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+}
+
+function createSquareInput() {
+  const squareInput = document.createElement("input");
+  squareInput.type = "text";
+  squareInput.maxLength = 1;
+  squareInput.classList.add("square-input");
+
+  squareInput.addEventListener("input", (event) => {
+    event.target.value = event.target.value.toUpperCase();
+    if (event.target.nextSibling) {
+      event.target.nextSibling.focus();
+    }
+  });
+
+  squareInput.addEventListener("keydown", (event) => {
+    if (event.key === "Backspace" && event.target.previousSibling) {
+      if (!event.target.nextSibling && event.target.value != "") {
+        event.target.value = "";
+      } else {
+        event.target.previousSibling.value = "";
+        event.target.previousSibling.focus();
+      }
+    }
+  });
+
+  squareInput.addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+      handleGuess();
+    }
+  });
+
+  return squareInput;
+}
 
 function getRandomWord() {
-  const today = new Date();
   // seed ends up being YYYYMMDD
-  const seed =
-    today.getFullYear() * 10000 +
-    (today.getMonth() + 1) * 100 +
-    today.getDate();
+  const seed = getTodayDate();
   const rng = new Math.seedrandom(seed);
   return wordList[Math.floor(rng() * wordList.length)];
 }
@@ -46,6 +80,11 @@ function updateUI(guess, result) {
   guessContainer.appendChild(guessRow);
 }
 
+function hideInputs() {
+  const inputContainer = document.getElementById("input-container");
+  inputContainer.classList.add("hidden");
+}
+
 function handleGuess() {
   const squareInputs = document.querySelectorAll(".square-input");
   currentGuess = Array.from(squareInputs)
@@ -54,6 +93,7 @@ function handleGuess() {
     .toLowerCase();
 
   if (currentGuess.length === 6) {
+    // Wrong guess
     if (!wordList.includes(currentGuess)) {
       console.log("invalid word");
       squareInputs.forEach((input) => (input.value = ""));
@@ -76,151 +116,125 @@ function handleGuess() {
       return;
     }
 
-    gameState = JSON.parse(localStorage.getItem("slw_game_state"));
+    gameState = loadGameState();
 
     const result = checkGuess(currentGuess, targetWord);
+
     gameState.currentGame.previousGuesses.push({ currentGuess, result });
 
     updateUI(currentGuess, result);
+
     remainingGuesses--;
     gameState.currentGame.remainingGuesses--;
-    if (currentGuess === gameState.currentGame.targetWord ||
-      gameState.currentGame.remainingGuesses === 1 ) 
-      {
+
+    // Match
+    if (currentGuess === gameState.currentGame.targetWord) {
       gameContainer.innerHTML += `<p class="end-message">Nice Job! Come back tomorrow :)</p>`;
-      // const endMessage = document.createElement("p");
-      // endMessage.classList.add("end-message");
-      // endMessage.innerHTML += `Game Over! The word was ${targetWord.toUpperCase()}`;
-      const inputContainer = document.getElementById("input-container");
-      inputContainer.classList.add("hidden");
+      hideInputs();
 
-      if (currentGuess === targetWord) {
-        gameState.stats.previousWins++;
-        gameState.stats.wins[7 - remainingGuesses]++;
-
-        if (gameState.stats.streak > 0) {
-          if (
-            gameState.stats.previousWinDate ===
-            gameState.currentGame.date - 1
-          ) {
-            gameState.stats.streak++;
-            gameState.stats.previousWinDate = gameState.currentGame.date;
-            if (gameState.stats.streak > gameState.stats.maxStreak)
-              gameState.stats.maxStreak = gameState.stats.streak;
-          }
+      gameState.stats.previousWins++;
+      gameState.stats.wins[7 - remainingGuesses]++;
+      gameState.stats.previousWinDate = getTodayDate();
+      if(gameState.stats.streak > 0) {
+        if (gameState.stats.previousWinDate === gameState.currentGame.date - 1) {
+          gameState.stats.streak += 1;
+          if (gameState.stats.streak > gameState.stats.maxStreak)
+            gameState.stats.maxStreak = gameState.stats.streak;
         }
+      } else {
+        gameState.stats.streak = 1;
       }
-      // squareInputs.forEach((input) => {
-      //   console.log(input)
-      //   input.classList.add("hidden")
-      // });
+      
+    } else if (gameState.currentGame.remainingGuesses === 0) {
+      // Out of guesses
+      gameContainer.innerHTML += `<p class="end-message">Come back tomorrow :)</p>`;
+      hideInputs();
     } else {
+      // Continue guessing
       squareInputs.forEach((input) => (input.value = ""));
       squareInputs[0].focus();
     }
-
-    localStorage.setItem("slw_game_state", JSON.stringify(gameState));
+    saveGameState(gameState)
   } else {
     alert("Please enter a 6-letter-word.");
   }
 }
 
-function initializeLocalStorage() {
-  const today = new Date();
-  const state = {
+function saveGameState(gameState) {
+  localStorage.setItem("slw_game_state", JSON.stringify(gameState));
+}
+
+function loadGameState() {
+  const defaultGameState = {
     stats: {
       previousWins: 0,
       previousWinDate: 0,
       streak: 0,
-      maxStreak: 0,
       gamesPlayed: 1,
       wins: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0 },
     },
     currentGame: {
+      targetWord: targetWord,
       previousGuesses: [],
       remainingGuesses: 7,
-      targetWord: "",
-      date:
-        today.getFullYear() * 10000 +
-        (today.getMonth() + 1) * 100 +
-        today.getDate(),
-    },
+      date: getTodayDate()
+    }
   };
-  localStorage.setItem("slw_game_state", JSON.stringify(state));
-  return state;
+
+  const storedGameState = JSON.parse(localStorage.getItem("slw_game_state"));
+
+  if (!storedGameState) {
+    return defaultGameState;
+  }
+
+  const gameState = {
+    ...defaultGameState,
+    ...storedGameState,
+    currentGame: {
+      ...defaultGameState.currentGame,
+      ...storedGameState.currentGame
+    }
+  };
+
+  if (getTodayDate() !== gameState.currentGame.date) {
+    gameState = {
+      stats: {
+        ...gameState.stats,
+        gamesPlayed: gameState.stats.gamesPlayed + 1,
+      },
+      currentGame: {
+        ...gameState.currentGame,
+        targetWord: targetWord,
+        previousGuesses: [],
+        remainingGuesses: 7,
+        date: getTodayDate()
+      }
+    };
+  }
+
+  return gameState;
 }
 
 function initGame() {
-  const guessContainer = document.createElement("div");
-  guessContainer.id = "guess-container";
-  gameContainer.appendChild(guessContainer);
-
-  const inputContainer = document.createElement("div");
-  inputContainer.id = "input-container";
-  gameContainer.appendChild(inputContainer);
+  const guessContainer = document.getElementById("guess-container");
+  const inputContainer = document.getElementById("input-container");
 
   for (let i = 0; i < 6; i++) {
-    const squareInput = document.createElement("input");
-    squareInput.type = "text";
-    squareInput.maxLength = 1;
-    squareInput.classList.add("square-input");
+    const squareInput = createSquareInput(i);
     inputContainer.appendChild(squareInput);
-
-    squareInput.addEventListener("input", (event) => {
-      event.target.value = event.target.value.toUpperCase();
-      if (event.target.nextSibling) {
-        event.target.nextSibling.focus();
-      }
-    });
-
-    squareInput.addEventListener("keydown", (event) => {
-      if (event.key === "Backspace" && event.target.previousSibling) {
-        if (!event.target.nextSibling && event.target.value != "") {
-          event.target.value = "";
-        } else {
-          event.target.previousSibling.value = "";
-          event.target.previousSibling.focus();
-        }
-      }
-    });
-
-    squareInput.addEventListener("keyup", (event) => {
-      if (event.key === "Enter") {
-        handleGuess();
-      }
-    });
   }
 
   const squareInputs = document.querySelectorAll(".square-input");
   squareInputs[0].focus();
 
   // Local storage
-  gameState = JSON.parse(localStorage.getItem("slw_game_state"));
-  console.log(gameState);
-  if (!gameState) {
-    data = initializeLocalStorage();
-    console.log("initialized a fresh storage");
-  }
+  gameState = loadGameState();
 
   console.log(gameState);
 
   remainingGuesses = gameState.currentGame.remainingGuesses;
-  //if the target word based on today's seed is wrong the game state is most likely stale.
-  if (targetWord != gameState.currentGame.targetWord) {
-    //reset the current game
-    // currentGame: {
-    //   previousGuesses: [],
-    //   remainingGuesses: 7,
-    //   targetWord: "",
-    //   date: today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate(),
-    // }
-    gameState.currentGame.previousGuesses = [];
-    gameState.currentGame.remainingGuesses = 7;
-    gameState.currentGame.targetWord = targetWord;
-    const today = new Date();
-    gameState.currentGame.date = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  }
-  localStorage.setItem("slw_game_state", JSON.stringify(gameState));
+
+  saveGameState(gameState);
 
   // Restore the game board
   if(gameState.currentGame.previousGuesses.length > 0){
@@ -233,17 +247,31 @@ function initGame() {
         gameContainer.innerHTML += `<p class="end-message">Nice Job! Come back tomorrow :)</p>`;
       }
     }
-    
+  }
+
+}
+
+async function loadWords() {
+  try {
+    const response = await fetch("./words.json");
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error(err);
+    return [];
   }
 }
 
-// Initialize the game
-fetch("./words.json")
-  .then((res) => res.json())
-  .then((data) => {
-    wordList = data;
+async function startGame() {
+  wordList = await loadWords();
+
+  if (wordList.length > 0) {
     targetWord = getRandomWord();
     console.log(targetWord);
     initGame();
-  })
-  .catch((err) => console.log(err));
+  } else {
+    console.error("Failed to load words.json unable to start the game.");
+  }
+}
+
+startGame();
